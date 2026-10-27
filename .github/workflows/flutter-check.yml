@@ -13,6 +13,11 @@ jobs:
       - name: Generate missing Android scaffolding
         run: |
           flutter create --platforms=android --project-name elkhawaja_store --org com.elkhawaja .
+      - name: Remove generated template test
+        run: |
+          if [ -f test/widget_test.dart ] && ! git ls-files --error-unmatch test/widget_test.dart >/dev/null 2>&1; then
+            rm test/widget_test.dart
+          fi
       - name: Install dependencies
         run: flutter pub get
       - name: Static analysis
