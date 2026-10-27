@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../model/product_model.dart';
 import '../../services/store_repository.dart';
+import '../../services/image_upload_service.dart';
 
 class ProductEditorScreen extends StatefulWidget {
   final ProductModel? existing;
@@ -21,6 +22,7 @@ class _ProductEditorScreenState extends State<ProductEditorScreen> {
   late String category = widget.existing?.category ?? 'Watches';
   late String currency = widget.existing?.currency ?? 'KWD';
   bool saving = false;
+  bool uploading = false;
   String? error;
   final categories = const ['Watches', 'Pens', 'Rosary', 'Incense', 'Gemstones', 'Other'];
 
@@ -83,6 +85,21 @@ class _ProductEditorScreenState extends State<ProductEditorScreen> {
           decoration: const InputDecoration(labelText: 'رقم التواصل')),
         TextFormField(controller: image,
           decoration: const InputDecoration(labelText: 'رابط صورة المنتج')),
+        OutlinedButton.icon(
+          onPressed: uploading ? null : () async {
+            setState(() => uploading = true);
+            try {
+              final url = await ImageUploadService().pickAndUpload();
+              if (url != null) image.text = url;
+            } catch (e) {
+              if (mounted) setState(() => error = e.toString());
+            } finally {
+              if (mounted) setState(() => uploading = false);
+            }
+          },
+          icon: const Icon(Icons.add_photo_alternate_outlined),
+          label: Text(uploading ? 'جارٍ رفع الصورة...' : 'اختيار صورة من المعرض'),
+        ),
         if (error != null) Text(error!, style: const TextStyle(color: Colors.red)),
         const SizedBox(height: 18),
         FilledButton(onPressed: saving ? null : save,
