@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'model/product_model.dart';
+import 'modules/login/auth_screen.dart';
+import 'modules/product/product_editor_screen.dart';
+import 'services/store_repository.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -51,7 +55,27 @@ class _StoreHomeState extends State<StoreHome> {
   Widget build(BuildContext context) => Directionality(
     textDirection: TextDirection.rtl,
     child: Scaffold(
-      appBar: AppBar(title: const Text('الخواجة ستور'), centerTitle: true),
+      appBar: AppBar(title: const Text('الخواجة ستور'), centerTitle: true,
+        actions: [IconButton(tooltip: 'حسابي', icon: const Icon(Icons.account_circle_outlined),
+          onPressed: () async {
+            if (!widget.firebaseReady) return;
+            if (FirebaseAuth.instance.currentUser == null) {
+              await Navigator.push(context, MaterialPageRoute(builder: (_) => const AuthScreen()));
+            } else {
+              await Navigator.push(context, MaterialPageRoute(builder: (_) => const MyProductsScreen()));
+            }
+            if (mounted) setState(() {});
+          })]),
+      floatingActionButton: widget.firebaseReady ? FloatingActionButton.extended(
+        onPressed: () async {
+          if (FirebaseAuth.instance.currentUser == null) {
+            await Navigator.push(context, MaterialPageRoute(builder: (_) => const AuthScreen()));
+          } else {
+            await Navigator.push(context, MaterialPageRoute(builder: (_) => const ProductEditorScreen()));
+          }
+          if (mounted) setState(() {});
+        },
+        icon: const Icon(Icons.add), label: const Text('إضافة منتج')) : null,
       body: Column(children: [
         SizedBox(height: 58, child: ListView(
           scrollDirection: Axis.horizontal,
@@ -69,7 +93,7 @@ class _StoreHomeState extends State<StoreHome> {
             child: Text('يلزم ربط إعدادات Firebase الأصلية لعرض المنتجات الحقيقية.'),
           ),
         Expanded(child: widget.firebaseReady ? StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-          stream: FirebaseFirestore.instance.collection('products').snapshots(),
+          stream: FirebaseFirestore.instance.collection('Products').snapshots(),
           builder: (context, snapshot) {
             if (snapshot.hasError) {
               return const Center(child: Text('تعذر تحميل المنتجات. راجع إعدادات قاعدة البيانات.'));
@@ -138,6 +162,59 @@ class ProductDetails extends StatelessWidget {
         Text('الدولة: ${product.countryName ?? ''}'),
         Text('الهاتف: ${product.countryCode ?? ''} ${product.phoneNumber ?? ''}'),
       ]),
+    ),
+  );
+}
+
+class MyProductsScreen extends StatelessWidget {
+  const MyProductsScreen({super.key});
+  @override
+  Widget build(BuildContext context) => Directionality(
+    textDirection: TextDirection.rtl,
+    child: Scaffold(
+      appBar: AppBar(title: const Text('منتجاتي'), actions: [
+        IconButton(icon: const Icon(Icons.logout), onPressed: () async {
+          await FirebaseAuth.instance.signOut();
+          if (context.mounted) Navigator.pop(context);
+        }),
+      ]),
+      body: StreamBuilder<List<ProductModel>>(
+        stream: StoreRepository().watchMyProducts(),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) return Center(child: Text(snapshot.error.toString()));
+          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+          final items = snapshot.data!;
+          if (items.isEmpty) return const Center(child: Text('ليس لديك منتجات بعد'));
+          return ListView.builder(itemCount: items.length, itemBuilder: (context, i) {
+            final p = items[i];
+            return ListTile(title: Text(p.title ?? ''),
+              subtitle: Text('${p.price ?? ''} ${p.currency ?? ''}'),
+              trailing: Wrap(mainAxisSize: MainAxisSize.min, children: [
+                IconButton(icon: const Icon(Icons.edit_outlined), onPressed: () =>
+                  Navigator.push(context, MaterialPageRoute(
+                    builder: (_) => ProductEditorScreen(existing: p)))),
+                IconButton(icon: const Icon(Icons.delete_outline), onPressed: () async {
+                  final ok = await showDialog<bool>(context: context,
+                    builder: (ctx) => AlertDialog(title: const Text('حذف المنتج؟'),
+                      actions: [
+                        TextButton(onPressed: () => Navigator.pop(ctx, false),
+                          child: const Text('إلغاء')),
+                        TextButton(onPressed: () => Navigator.pop(ctx, true),
+                          child: const Text('حذف')),
+                      ]));
+                  if (ok == true) {
+                    try { await StoreRepository().deleteProduct(p); }
+                    catch (e) {
+                      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(e.toString())));
+                    }
+                  }
+                }),
+              ]),
+            );
+          });
+        },
+      ),
     ),
   );
 }
