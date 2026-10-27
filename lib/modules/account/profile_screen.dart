@@ -57,6 +57,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         const SizedBox(height: 20),
         FilledButton(onPressed: busy ? null : save,
           child: Text(busy ? 'جارٍ الحفظ...' : 'حفظ التغييرات')),
-      ]))),
+      ])),
   );
 }
