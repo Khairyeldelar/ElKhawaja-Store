@@ -5,6 +5,8 @@ import 'model/product_model.dart';
 import 'modules/login/auth_screen.dart';
 import 'modules/product/product_editor_screen.dart';
 import 'services/store_repository.dart';
+import 'modules/account/profile_screen.dart';
+import 'modules/account/report_product_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 Future<void> main() async {
@@ -161,6 +163,11 @@ class ProductDetails extends StatelessWidget {
         const SizedBox(height: 18),
         Text('الدولة: ${product.countryName ?? ''}'),
         Text('الهاتف: ${product.countryCode ?? ''} ${product.phoneNumber ?? ''}'),
+        const SizedBox(height: 20),
+        if (product.productId != null) OutlinedButton.icon(
+          icon: const Icon(Icons.flag_outlined), label: const Text('الإبلاغ عن المنتج'),
+          onPressed: () => Navigator.push(context, MaterialPageRoute(
+            builder: (_) => ReportProductScreen(productId: product.productId!)))),
       ]),
     ),
   );
@@ -173,6 +180,9 @@ class MyProductsScreen extends StatelessWidget {
     textDirection: TextDirection.rtl,
     child: Scaffold(
       appBar: AppBar(title: const Text('منتجاتي'), actions: [
+        IconButton(icon: const Icon(Icons.manage_accounts_outlined), tooltip: 'الملف الشخصي',
+          onPressed: () => Navigator.push(context, MaterialPageRoute(
+            builder: (_) => const ProfileScreen()))),
         IconButton(icon: const Icon(Icons.logout), onPressed: () async {
           await FirebaseAuth.instance.signOut();
           if (context.mounted) Navigator.pop(context);
