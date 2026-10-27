@@ -224,7 +224,7 @@ class MyProductsScreen extends StatelessWidget {
             final p = items[i];
             return ListTile(title: Text(p.title ?? ''),
               subtitle: Text('${p.price ?? ''} ${p.currency ?? ''}'),
-              trailing: Wrap(mainAxisSize: MainAxisSize.min, children: [
+              trailing: Row(mainAxisSize: MainAxisSize.min, children: [
                 IconButton(icon: const Icon(Icons.edit_outlined), onPressed: () =>
                   Navigator.push(context, MaterialPageRoute(
                     builder: (_) => ProductEditorScreen(existing: p)))),
