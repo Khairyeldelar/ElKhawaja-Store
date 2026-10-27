@@ -1,19 +1,32 @@
-name: Flutter checks
+name: Flutter checks and debug APK
 on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 jobs:
-  analyze:
+  flutter:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          cache: true
+      - name: Generate missing Android scaffolding
+        run: |
+          flutter create --platforms=android --project-name elkhawaja_store --org com.elkhawaja .
       - name: Install dependencies
         run: flutter pub get
       - name: Static analysis
         run: flutter analyze
       - name: Tests
         run: flutter test
+      - name: Build debug APK
+        run: flutter build apk --debug
+      - name: Upload debug APK
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: elkhawaja-store-debug-apk
+          path: build/app/outputs/flutter-apk/app-debug.apk
