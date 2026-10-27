@@ -8,6 +8,8 @@ import 'services/store_repository.dart';
 import 'modules/account/profile_screen.dart';
 import 'modules/account/report_product_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'modules/onboarding/onboarding_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -30,8 +32,31 @@ class ElKhawajaApp extends StatelessWidget {
     debugShowCheckedModeBanner: false,
     locale: const Locale('ar'),
     theme: ThemeData(useMaterial3: true, colorSchemeSeed: const Color(0xFFB98A57)),
-    home: StoreHome(firebaseReady: firebaseReady),
+    home: LaunchGate(firebaseReady: firebaseReady),
   );
+}
+
+class LaunchGate extends StatefulWidget {
+  final bool firebaseReady;
+  const LaunchGate({super.key, required this.firebaseReady});
+  @override
+  State<LaunchGate> createState() => _LaunchGateState();
+}
+class _LaunchGateState extends State<LaunchGate> {
+  bool? seen;
+  @override
+  void initState() {
+    super.initState();
+    SharedPreferences.getInstance().then((prefs) {
+      if (mounted) setState(() => seen = prefs.getBool('onBoarding') ?? false);
+    });
+  }
+  @override
+  Widget build(BuildContext context) {
+    if (seen == null) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (!seen!) return OnboardingScreen(onFinish: () => setState(() => seen = true));
+    return StoreHome(firebaseReady: widget.firebaseReady);
+  }
 }
 
 class StoreHome extends StatefulWidget {
